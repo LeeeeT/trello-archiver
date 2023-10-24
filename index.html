@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta charset="utf-8">
+  <title>#offlinetrello</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="jquery.min.js"></script>
+  <script src="knockout-min.js"></script>
+  <script src="markdown-it.js"></script>
+  <script src="bootstrap.bundle.min.js"></script>
+  <script src="knockout-markdown.js"></script>
+  <script src="script.js"></script>
+</head>
+
+<body>
+  <div class="board" data-bind="trelloBoard: board, with: board">
+    <div class="header" data-bind="style: {backgroundColor: prefs.backgroundTopColor}">
+      <div class="d-flex align-items-center">
+        <span class="board-header-btn mod-board-name mr-2" data-bind="text: name"></span>
+        <a data-bind="attr: {href:externalUrl}" target="_blank" title="Open in Trello"><i
+            class="fa fa-external-link-alt"></i></a>
+      </div>
+      <div class="d-flex align-items-center" id="file-menu">
+        <span class="mr-2">trello.json file:</span>
+        <span class="mr-2"><input type="file" id="file-input" /></span>
+      </div>
+    </div>
+    <div class="mt-3" id="content">
+      <div class="board-wrapper">
+        <div data-bind="foreach: lists">
+          <!--ko ifnot: closed -->
+          <div class="list-wrapper">
+            <div class="list">
+              <div class="list-header">
+                <span class="list-header-name" data-bind="text: name"></span>
+              </div>
+              <div class="list-cards">
+                <div data-bind="foreach: cards">
+                  <div data-bind="click: $parents[1].openCard, template: 'card'"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- /ko -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ko if: currentlyOpenCard -->
+    <div id="open-card" class="open-card" data-bind="with: currentlyOpenCard" , style="display: none;">
+      <div class="background" data-bind="click: $parent.closeCard"></div>
+      <div class="window">
+        <div class="window-header">
+          <div class="d-flex justify-content-between">
+            <h2 class="card-title" data-bind="text: name"></h2>
+            <a class="quiet" target="_blank" data-bind="attr:{href: url}">Open</a>
+          </div>
+          <p class="quiet u-inline-block u-bottom">in list <a href="#"
+              data-bind="text: function() { return $parent.getListById(idList).name }()"></a></p>
+          <!-- ko if: members && members.length > 0 -->
+          <div>
+            <span class="quiet strong caps">Members</span>
+            <div class="d-flex">
+              <div class="flex-grow-0" data-bind="foreach: members">
+                <!-- ko template: 'avatar' --><!-- /ko -->
+              </div>
+            </div>
+          </div>
+          <!-- /ko -->
+        </div>
+        <div class="window-main-col px-4">
+          <div class="row window-module">
+            <div class="col icon-column">
+              <i class="fa fa-align-left"></i>
+            </div>
+            <div class="col">
+              <h3>Description</h3>
+              <p class="description" data-bind="markdown: desc"></p>
+            </div>
+          </div>
+
+          <!-- ko foreach: checklists -->
+          <div class="window-module checklist">
+            <!-- ko template: 'checklist' --><!-- /ko -->
+          </div>
+          <!-- /ko -->
+
+          <!-- ko if: attachments.length > 0 -->
+          <div class="row window-module">
+            <div class="col icon-column">
+              <i class="fas fa-paperclip"></i>
+            </div>
+            <div class="col">
+              <h3>Attachments</h3>
+              <!-- ko foreach: attachments -->
+              <div class="window-module" data-bind="template: 'attachment'"></div>
+              <!-- /ko -->
+            </div>
+          </div>
+          <!-- /ko -->
+
+          <div class="row window-module">
+            <div class="col icon-column">
+              <i class="far fa-comment"></i>
+            </div>
+            <div class="col">
+              <h3>Activity</h3>
+            </div>
+          </div>
+          <!-- ko foreach: actions -->
+          <div class="window-module" data-bind="template: 'action'"></div>
+          <!-- /ko -->
+        </div>
+      </div>
+    </div>
+    <!-- /ko -->
+  </div>
+
+</body>
+
+<!-- ------------------------- Action Templates ------------------------- -->
+
+<script type="text/html" id="actionEmailCard">
+    <!-- ko template: 'memberName' --><!-- /ko -->
+emailed this card to
+<span data-bind="text: data.list.name"></span>
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+</script>
+
+<script type="text/html" id="actionMoveCardToBoard">
+    <!-- ko template: 'memberName' --><!-- /ko -->
+transferred this card from
+<a class="underlink" target="_blank"
+  data-bind="text: data.board.name, attr: {href: function() { return 'https://www.trello.com/'+data.board.shortLink }() }"></a>
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+</script>
+
+<script type="text/html" id="actionAddAttachmentToCard">
+    <!-- ko template: 'memberName' --><!-- /ko -->
+attached
+<a class="underlink" target="_blank" data-bind="text: data.attachment.name, attr: {href: data.attachment.url}"></a>
+to this card
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+</script>
+
+<script type="text/html" id="actionCreateCard">
+    <!-- ko template: 'memberName' --><!-- /ko -->
+added this card to
+<span data-bind="text: data.board.name"></span>
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+</script>
+
+<script type="text/html" id="actionMoveCardToBoard">
+    <!-- ko template: 'memberName' --><!-- /ko -->
+transferred this card to
+<span data-bind="text: data.board.name"></span>
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+</script>
+
+<script type="text/html" id="actionAddChecklistToCard">
+    <!-- ko template: 'memberName' --><!-- /ko -->
+added
+<span data-bind="text: data.checklist.name"></span>
+to this card
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+</script>
+
+<script type="text/html" id="actionRemoveChecklistFromCard">
+    <!-- ko template: 'memberName' --><!-- /ko -->
+removed
+<span data-bind="text: data.checklist.name"></span>
+from this card
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+</script>
+
+<script type="text/html" id="actionCommentCard">
+    <div>
+      <!-- ko template: 'memberName' --><!-- /ko -->
+      <span class="quiet" data-bind="text: prettyDate"></span>
+    </div>
+    <div class="card-comment" data-bind="markdown: prettyCardComment"></div>
+  </script>
+
+<script type="text/html" id="actionAddMemberToCard">
+    <!-- ko template: 'memberName' --><!-- /ko -->
+added
+<strong data-bind="text: data.member.name"></strong>
+to this card
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+</script>
+
+<script type="text/html" id="actionRemoveMemberFromCard">
+    <!-- ko template: 'memberName' --><!-- /ko -->
+left this card
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+</script>
+
+<script type="text/html" id="actionMoveCardFromBoard">
+    <!-- ko template: 'memberName' --><!-- /ko -->
+added this card to
+<span data-bind="text: data.list.name"></span>
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+</script>
+
+<script type="text/html" id="actionUpdateCheckItemStateOnCard">
+    <!-- ko if: data.checkItem.state == 'complete' -->
+<!-- ko template: 'memberName' --><!-- /ko -->
+completed
+<span data-bind="text: data.checkItem.name"></span>
+on this card
+<!-- ko template: 'actionPrettyDate' --><!-- /ko -->
+<!-- /ko -->
+</script>
+
+<script type="text/html" id="card">
+    <div class="list-card">
+      <div class="list-card-cover" data-bind="trelloCardCover: $data"></div>
+      <div class="list-card-details">
+        <div class="list-card-title" data-bind="foreach: labels">
+            <div class="label" data-bind="style: {backgroundColor: backgroundColor}, text: name"></div>
+        </div>
+        <span class="list-card-title" data-bind="text: name"></span>
+        <div data-bind="using: badges">
+            <span class="list-card-title badge" data-bind="visible: description"><i class="fa fa-align-left"></i></span>
+            <span class="list-card-title badge" data-bind="visible: comments>0"><i class="far fa-comment"></i>
+                <span class="list-card-title badgecolor" data-bind="text: comments"></span>
+            </span>
+            <span class="list-card-title badge" data-bind="visible: attachments>0"><i class="fas fa-paperclip"></i>
+                <span class="list-card-title badgecolor" data-bind="text: attachments"></span>
+            </span>
+            <span class="list-card-title badge" data-bind="visible: checkItems>0"><i class="far fa-check-square"></i>
+                <span class="list-card-title badgecolor" data-bind="text: checkItemsChecked + '/' + checkItems"></span>
+            </span>
+        </div>
+        </div>
+    </div>
+  </script>
+
+<script type="text/html" id="memberName">
+    <!-- ko if: member -->
+<strong data-bind="text: member.fullName"></strong>
+<!-- /ko -->
+<!-- ko ifnot: member -->
+<strong>a removed member</strong>
+<!-- /ko -->
+</script>
+
+
+<script type="text/html" id="actionPrettyDate">
+    <p class="quiet" data-bind="text: prettyDate"></p>
+  </script>
+
+<script type="text/html" id="action">
+    <!-- <span data-bind="text: actionTemplate"></span> -->
+<!-- <pre data-bind="html: ko.toJSON($data, null, 2)"></pre> -->
+<div class="row no-gutters d-flex">
+  <div class="col flex-grow-0 pr-2 icon-column" data-bind="with: member">
+    <!-- ko template: 'avatar' --><!-- /ko -->
+  </div>
+  <div class="col">
+    <div>
+      <div data-bind="template: actionTemplate"></div>
+    </div>
+  </div>
+</div>
+</script>
+
+<script type="text/html" id="avatar">
+<span class="avatar d-flex align-items-center justify-content-center">
+  <span data-bind="text: initials, attr:{title: description}"></span>
+</span>
+</script>
+
+<script type="text/html" id="attachment">
+  <b><a class="underlink" target="_blank" data-bind="text: fileName, attr: {href: url}"></a></b> Added <span data-bind="text: prettyDate"></span>
+</script>
+
+<script type="text/html" id="checklist">
+    <div class="row justify-content-between align-items-center">
+      <div class="col icon-column">
+        <i class="far fa-check-square"></i>
+      </div>
+      <div class="flex-grow-1">
+        <h3 data-bind="text: name"></h3>
+      </div>
+      <button class="flex-align-end btn btn-success mr-3" data-bind="click: toggleHideCompleted">
+        <span data-bind="ifnot: hideCompleted">Hide completed items</span>
+        <span data-bind="if: hideCompleted">Show checked items (<span data-bind="text: function() { return items.length-visibleItems().length; }()"></span>)</span>
+      </button>
+    </div>
+
+    <div class="row no-gutters align-items-center">
+      <div class="col icon-column quiet tiny text-center pr-2">
+        <span data-bind="text: prettyPercentComplete"></span>
+      </div>
+      <div class="col">
+        <div class="progress">
+          <div class="progress-bar" role="progressbar" data-bind="style: {width: function() { return percentComplete()+'%'; }()}"></div>
+        </div>
+      </div>
+    </div>    
+
+    <!-- ko foreach: visibleItems -->
+    <div class="row d-flex flex-nowrap" data-bind="css: {'quiet': checked, 'is-checked': checked, 'is-not-checked': function() { return !checked() }()}">
+      <div class="col icon-column">
+        <div class="py-2">
+          <!-- ko if: checked -->
+            <i class="fa fa-check-square"></i>
+          <!-- /ko -->
+          <!-- ko ifnot: checked -->
+            <i class="far fa-square"></i>
+          <!-- /ko -->
+        </div>
+      </div>
+      <div class="py-2" data-bind="text: name"></div>
+    </div>
+    <!-- /ko -->
+  </script>
+
+</html>
