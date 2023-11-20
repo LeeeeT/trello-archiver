@@ -10,7 +10,7 @@ class Client:
     def __init__(self, api_key, token):
         self._api_key = api_key
         self._token = token
-    
+
     def request(self, url):
         return requests.get(url, headers={"Authorization": f"OAuth oauth_consumer_key=\"{self._api_key}\", oauth_token=\"{self._token}\""}, allow_redirects=True)
 
@@ -27,9 +27,9 @@ def board_url_to_json_url(board_url):
     return board_url + ".json"
 
 
-def save(path, content, mode):
+def save(path, content, *args, **kwargs):
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, mode) as file:
+    with open(path, *args, **kwargs) as file:
         file.write(content)
 
 
@@ -47,7 +47,7 @@ class Archiver:
     def __init__(self, client, archive_directory):
         self._client = client
         self._archive_directory = archive_directory
-    
+
     def archive(self, json_filename, json_text):
         json = loads(json_text)
 
@@ -68,7 +68,7 @@ class Archiver:
                             save(path, self._client.request(preview["url"]).content, "wb")
                             json_text = json_text.replace(preview["url"], f"{self._archive_directory}/{preview_id}/{name}")
 
-        save(Path(json_filename), json_text, "w")
+        save(Path(json_filename), json_text, "w", encoding="utf-8")
 
 
 def main():
