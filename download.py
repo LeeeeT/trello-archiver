@@ -1,7 +1,7 @@
 import os
 import re
 import requests
-from dotenv import load_dotenv
+import dotenv
 from pathlib import Path
 from json import loads
 
@@ -55,7 +55,7 @@ class Archiver:
             for attachment in card["attachments"]:
                 if attachment["isUpload"]:
                     card_id, attachment_id, name = parse_attachment_url(attachment["url"])
-                    path = Path(__file__).parent / self._archive_directory / attachment_id / name
+                    path = Path(self._archive_directory) / attachment_id / name
                     print(f"Downloading {attachment_id}/{name}...")
                     save(path, self._client.request(attachment["url"]).content, "wb")
                     json_text = json_text.replace(attachment["url"], f"{self._archive_directory}/{attachment_id}/{name}")
@@ -63,7 +63,7 @@ class Archiver:
                     match attachment["previews"]:
                         case [_, preview, *_]:
                             card_id, attachment_id, preview_id, name = parse_preview_url(preview["url"])
-                            path = Path(__file__).parent / self._archive_directory / preview_id / name
+                            path = Path(self._archive_directory) / preview_id / name
                             print(f"Downloading {preview_id}/{name}...")
                             save(path, self._client.request(preview["url"]).content, "wb")
                             json_text = json_text.replace(preview["url"], f"{self._archive_directory}/{preview_id}/{name}")
@@ -71,16 +71,51 @@ class Archiver:
         save(Path(json_filename), json_text, "w", encoding="utf-8")
 
 
-def main():
-    load_dotenv()
+def api_key_and_token_exist():
+    dotenv.load_dotenv()
+    return "API_KEY" in os.environ and "TOKEN" in os.environ
 
-    api_key = os.environ["API_KEY"]
-    token = os.environ["TOKEN"]
+
+def ask_api_key_and_token():
+    api_key = input("Enter your API key: ")
+    print(f"Open the following url and copy the token:\nhttps://trello.com/1/authorize?scope=read&expiration=never&name=archiver&key={api_key}&response_type=token")
+    token = input("Enter your token: ")
+    return api_key, token
+
+
+def save_api_key_and_token(api_key, token):
+    dotenv.set_key(".env", "API_KEY", api_key)
+    dotenv.set_key(".env", "TOKEN", token)
+
+
+def ask_and_save_api_key_and_token():
+    api_key, token = ask_api_key_and_token()
+    save_api_key_and_token(api_key, token)
+    return api_key, token
+
+
+def load_api_key_and_token():
+    dotenv.load_dotenv()
+    return os.environ["API_KEY"], os.environ["TOKEN"]
+
+
+def get_api_key_and_token():
+    if not api_key_and_token_exist():
+        ask_and_save_api_key_and_token()
+    return load_api_key_and_token()
+       
+
+
+def main():
+    api_key, token = get_api_key_and_token()
 
     client = Client(api_key, token)
     archiver = Archiver(client, "res")
 
-    archiver.archive(get_json_filename(), client.request(board_url_to_json_url(get_board_url())).text)
+    board_url = get_board_url()
+    json_filename = get_json_filename()
+
+    archiver.archive(json_filename, client.request(board_url_to_json_url(board_url)).text)
 
 
 main()
